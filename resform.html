@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>トリミング予約フォーム</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+
+        input,
+        textarea,
+        button {
+            display: block;
+            margin-bottom: 10px;
+            padding: 8px;
+            box-sizing: border-box;
+            width: 100%;
+            max-width: 300px;
+        }
+
+        .double-width {
+            max-width: 600px;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 5px;
+            margin-top: 20px;
+        }
+
+        .grid-button {
+            padding: 10px;
+            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+            cursor: pointer;
+            text-align: center;
+            width: 100%;
+        }
+
+        .selected {
+            background-color: #d0ebff;
+            border-color: #007bff;
+        }
+
+        .desk-header {
+            text-align: center;
+            font-weight: bold;
+            padding: 5px 0;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .response {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>トリミング予約フォーム</h2>
+
+    <button id="checkReservationsBtn" onclick="fetchReservations()">Check Reservations</button>
+
+    <form id="visitorForm">
+        <label for="doctorName">担当者:</label>
+        <input type="text" id="doctorName" name="doctorName" class="double-width" required>
+
+        <label for="visitorName">お客様:</label>
+        <input type="text" id="visitorName" name="visitorName" class="double-width" required>
+
+        <div class="grid-container">
+            <!-- Desk headers -->
+            <div class="desk-header">AAA</div>
+            <div class="desk-header">BBB</div>
+            <div class="desk-header">CCC</div>
+            <div class="desk-header">DDD</div>
+            <div class="desk-header">EEE</div>
+
+            <!-- Buttons for each time slot and desk combination -->
+        </div>
+
+        <button type="button" onclick="saveData()">保存</button>
+        <button type="button" onclick="submitForm()">予約設定</button>
+    </form>
+
+    <div id="response" class="response"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', generateGrid);
+
+        function fetchReservations() {
+            fetch('https://script.google.com/macros/s/AKfycbyboHbJECjEhQcuxylUIFMg9JcmaVq2DqZZckn8HvyPDV7wI7kGWE0VsVpszD7576cn/exec')
+                .then(response => response.json())
+                .then(reservations => {
+                    disableReservedSlots(reservations);
+                })
+                .catch(error => {
+                    console.error('Error fetching reservations:', error);
+                });
+        }
+
+        function disableReservedSlots(reservations) {
+            reservations.forEach(reservation => {
+                const buttonId = `${reservation.time}-${reservation.desk}`.replace(/[\s:]/g, '');
+                const button = document.getElementById(buttonId);
+                if (button) {
+                    button.disabled = true;
+                    button.title = `Reserved by ${reservation.doctorName} for ${reservation.visitorName}`;
+                }
+            });
+        }
+
+        const times = [
+            "9 : 00", "9 : 30", "10 : 00", "10 : 30", "11 : 00", "11 : 30",
+            "12 : 00", "12 : 30", "13 : 00", "13 : 30", "14 : 00", "14 : 30",
+            "15 : 00", "15 : 30", "16 : 00", "16 : 30", "17 : 00"
+        ];
+        const desks = ["AAA", "BBB", "CCC", "DDD", "EEE"];
+
+        function generateGrid() {
+            const gridContainer = document.querySelector('.grid-container');
+            times.forEach((time) => {
+                desks.forEach((desk) => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'grid-button';
+                    button.id = `${time}-${desk}`.replace(/[\s:]/g, ''); // Set button ID
+                    button.textContent = time;
+                    button.onclick = () => handleSelection(time, desk, button);
+                    gridContainer.appendChild(button);
+                });
+            });
+        }
+
+        let selectedTimeDesk = [];
+
+        function handleSelection(time, desk, button) {
+            const selectedClass = 'selected';
+
+            // Toggle the button's selected state
+            if (button.classList.contains(selectedClass)) {
+                button.classList.remove(selectedClass);
+                selectedTimeDesk = selectedTimeDesk.filter(
+                    (item) => item.time !== time || item.desk !== desk
+                );
+            } else {
+                button.classList.add(selectedClass);
+                selectedTimeDesk.push({ time, desk });
+            }
+        }
+
+        function saveData() {
+            const doctorName = document.getElementById('doctorName').value;
+            const visitorName = document.getElementById('visitorName').value;
+
+            if (selectedTimeDesk.length === 0) {
+                document.getElementById('response').innerText = '時間とデスクを選択してください。';
+                return;
+            }
+
+            const textToSave = `担当者: ${doctorName}\nお客様: ${visitorName}\n予約:\n` +
+                selectedTimeDesk.map((item) => `時間: ${item.time}, デスク: ${item.desk}`).join('\n');
+
+            const blob = new Blob([textToSave], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '予約記録.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+    function submitForm() {
+        const doctorName = document.getElementById('doctorName').value.trim();
+        const visitorName = document.getElementById('visitorName').value.trim();
+
+        if (!doctorName || selectedTimeDesk.length === 0 || !visitorName) {
+            document.getElementById('response').innerText = '全てのフィールドを入力してください。';
+            return;
+        }
+
+        // 新規予約情報の生成
+        const reservationCode = `xxx_${doctorName}_${visitorName}`;
+
+        // 選択された予約情報を含めてデータを送信
+        const dataToSend = {
+            reservationCode: reservationCode,
+            doctorName: doctorName,
+            visitorName: visitorName,
+            reservations: selectedTimeDesk
+        };
+
+        // JSON dataをファイルに保存
+        const jsonBlob = new Blob([JSON.stringify(dataToSend, null, 2)], { type: 'application/json' });
+        const jsonUrl = URL.createObjectURL(jsonBlob);
+        const jsonLink = document.createElement('a');
+        jsonLink.href = jsonUrl;
+        jsonLink.download = '予約データ.json'; // 保存するファイル名
+        jsonLink.click();
+        URL.revokeObjectURL(jsonUrl);
+
+        // サーバーにデータを送信
+
+        fetch('https://script.google.com/macros/s/AKfycby1J-GKxyl_XhgfcOofJG2b7zsbx-h4q0rs7gkAB1s_SXyvlhBraLfvUUGEQ2l7PSIJ/exec', {
+            method: 'POST',
+            mode: 'no-cors', // CORSエラーを回避
+            cache: 'no-cache',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            redirect: 'follow',
+            body: JSON.stringify(dataToSend)
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.text(); // JSONではなくテキストとして受け取る
+            })
+            .then(result => {
+                document.getElementById('response').innerText = '成功: ' + result;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('response').innerText = 'エラー: ' + error.message;
+            });
+    
+        }
+
+
+    </script>
+
+</body>
+
+</html>

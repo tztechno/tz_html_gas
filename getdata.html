@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Google Sheetsからデータを取得</title>
+    <style>
+        table {
+            width: auto;
+            /* テーブルの横幅を狭く設定 */
+            border-collapse: collapse;
+            margin: 0 auto;
+            /* テーブルを中央揃え */
+        }
+
+        th,
+        td {
+            border: 1px solid black;
+            padding: 4px;
+            /* セル内のスペースを狭く設定 */
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Google Sheetsからデータを取得</h1>
+    <button id="fetchDataBtn">データを取得</button>
+    <div id="dataDisplay">
+        <table id="dataTable">
+            <thead>
+                <tr id="headerRow"></tr>
+            </thead>
+            <tbody id="bodyRow"></tbody>
+        </table>
+    </div>
+
+    <script>
+        document.getElementById('fetchDataBtn').addEventListener('click', function () {
+            // スプレッドシートIDとシートIDを指定
+            const spreadsheetId = '1AYGfxPBK6wOBtwoJW3A499JmLQdCzccav_9rnPXaJXU';
+            const sheetId = 'YOUR_SHEET_ID'; // Google SheetsのシートID
+            const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json&gid=${sheetId}`;
+
+            fetch(url)
+                .then(response => response.text())
+                .then(text => {
+                    // JSON形式にパース
+                    const json = JSON.parse(text.substr(47).slice(0, -2));
+                    const columns = json.table.cols;
+                    const rows = json.table.rows;
+
+                    // テーブルのヘッダーとボディをリセット
+                    const headerRow = document.getElementById('headerRow');
+                    const bodyRow = document.getElementById('bodyRow');
+                    headerRow.innerHTML = '';
+                    bodyRow.innerHTML = '';
+
+                    // ヘッダーを作成
+                    columns.forEach(column => {
+                        const th = document.createElement('th');
+                        th.textContent = column.label || '';
+                        headerRow.appendChild(th);
+                    });
+
+                    // ボディを作成
+                    rows.forEach(row => {
+                        const tr = document.createElement('tr');
+                        row.c.forEach(cell => {
+                            const td = document.createElement('td');
+                            if (cell && cell.v) {
+                                // 時間のデータを文字列として処理
+                                td.textContent = typeof cell.v === 'object' && cell.v.constructor.name === 'Date' ?
+                                    cell.v.toISOString() : cell.v;
+                            } else {
+                                td.textContent = '';
+                            }
+                            tr.appendChild(td);
+                        });
+                        bodyRow.appendChild(tr);
+                    });
+                })
+                .catch(error => console.error('Error:', error));
+        });
+    </script>
+</body>
+
+</html>
