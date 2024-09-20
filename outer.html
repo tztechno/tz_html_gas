@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid black;
+        }
+
+        th,
+        td {
+            padding: 8px;
+            text-align: left;
+        }
+    </style>
+    <script>
+        // スプレッドシートからデータをロードする
+        function loadSheetData() {
+            google.script.run.withSuccessHandler(function (data) {
+                var table = '<table>';
+                for (var i = 0; i < data.length; i++) {
+                    table += '<tr>';
+                    for (var j = 0; j < data[i].length; j++) {
+                        table += `<td contenteditable="true" onblur="updateCell(${i + 1}, ${j + 1}, this.innerText)">` + data[i][j] + '</td>';
+                    }
+                    table += '</tr>';
+                }
+                table += '</table>';
+                document.getElementById('sheetData').innerHTML = table;
+            }).getSheetData();
+        }
+
+        // セルが編集された際にスプレッドシートを更新する
+        function updateCell(row, col, value) {
+            google.script.run.updateSheetData(row, col, value);
+        }
+
+        // リンクを新しいタブで開く
+        function openLink() {
+            window.open("https://script.google.com/macros/s/AKfycbwcvIJzLfA3PyDrw5rMYSPzhzkBEG_ahm3cGyi0BCPacNgU9EHb-IUuTLIgBB-Jcza6/exec", "_blank");
+        }
+    </script>
+</head>
+
+<body onload="loadSheetData()">
+    <h1>スプレッドシートのデータ</h1>
+    <div id="sheetData"></div>
+
+    <!-- ボタンをクリックしてリンク先を開く -->
+    <button onclick="openLink()">リンクを開く</button>
+
+</body>
+
+</html>
