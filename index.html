@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>スプレッドシートの内容を表示</title>
+    <style>
+      table, th, td {
+        border: 1px solid black;
+        border-collapse: collapse;
+        padding: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <button onclick="loadData()">シートを表示</button>
+    <div id="data-table"></div>
+
+    <script>
+      function loadData() {
+        google.script.run.withSuccessHandler(displayData).getSheetData();
+      }
+
+      function displayData(data) {
+        var table = "<table>";
+        for (var i = 0; i < data.length; i++) {
+          table += "<tr>";
+          for (var j = 0; j < data[i].length; j++) {
+            table += "<td>" + data[i][j] + "</td>";
+          }
+          table += "</tr>";
+        }
+        table += "</table>";
+        document.getElementById('data-table').innerHTML = table;
+      }
+    </script>
+  </body>
+</html>
