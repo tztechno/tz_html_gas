@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スプレッドシートデータの表示</title>
+    <script>
+        async function fetchSpreadsheetData() {
+            const response = await fetch('https://script.google.com/macros/s/AKfycbxrX1YXdGMxVYstgb2uLNviAQAQxN8shpzml83mbtnbabPHORlekz49tjGahjP8rmJV/exec');
+            const data = await response.json();
+            // 取得データをコンソールに表示
+            console.log(data);
+
+            const table = document.createElement('table');
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                const td1 = document.createElement('td');
+                td1.textContent = row.Column1;
+                const td2 = document.createElement('td');
+                td2.textContent = row.Column2;
+                const td3 = document.createElement('td');
+                td3.textContent = row.Column3;
+                tr.appendChild(td1);
+                tr.appendChild(td2);
+                tr.appendChild(td3);
+                table.appendChild(tr);
+            });
+
+            document.getElementById('spreadsheet-data').appendChild(table);
+        }
+
+        window.onload = fetchSpreadsheetData;
+    </script>
+</head>
+
+<body>
+    <h1>スプレッドシートの内容</h1>
+    <div id="spreadsheet-data"></div>
+</body>
+
+</html>
