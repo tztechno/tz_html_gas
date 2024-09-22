@@ -1,7 +1,7 @@
 
 
 function doGet(e) {
-  var sheet = SpreadsheetApp.openById("zzzzz").getSheetByName("sheet1");
+  var sheet = SpreadsheetApp.openById("xxxxx").getSheetByName("sheet1");
   var data = sheet.getDataRange().getValues();
 
   // 取得データをログに表示
