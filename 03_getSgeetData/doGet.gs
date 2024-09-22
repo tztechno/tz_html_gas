@@ -1,7 +1,7 @@
-//https://script.google.com/macros/s/xxxAKfycbxrX1YXdGMxVYstgb2uLNviAQAQxN8shpzml83mbtnbabPHORlekz49tjGahjP8rmJV/exec
+
 
 function doGet(e) {
-  var sheet = SpreadsheetApp.openById("xxx1V1bT5a3QghsS1Z-QQLsoVNPUhF-waeOqpgUKBfFjXu8").getSheetByName("sheet1");
+  var sheet = SpreadsheetApp.openById("zzzzz").getSheetByName("sheet1");
   var data = sheet.getDataRange().getValues();
 
   // 取得データをログに表示
