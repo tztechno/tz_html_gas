@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Plan Data</title>
+    <style>
+        .container {
+            padding-left: 100px;
+            padding-right: 100px;
+        }
+
+        #resultTable {
+            width: 90%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        #resultTable td {
+            padding: 5px;
+            text-align: center;
+        }
+    </style>
+    <script>
+        let currentData = [];
+        const YOUR_SCRIPT_ID = 'AKfycbxUp2cVMlyJPL3EzpsNAugrH73KRMEyZ2eQJRZEn9VcBRGO2ekeTv6_wPX-tp1RUMkm';
+
+        async function fetchPlanData() {
+            const name = document.getElementById("nameInput").value;
+            if (!name) {
+                alert('名前を入力してください');
+                return;
+            }
+
+            const response = await fetch(
+                `https://script.google.com/macros/s/${YOUR_SCRIPT_ID}/exec?name=${name}`
+            );
+            const data = await response.json();
+            currentData = data.rows;
+            displayTable(data.rows);
+        }
+
+        function displayTable(rows) {
+            const table = document.getElementById("resultTable");
+            table.innerHTML = "";
+
+            // 共通の3行（日付、曜日、休日）を表示
+            for (let i = 0; i < 3; i++) {
+                const tr = document.createElement("tr");
+                rows[i].forEach((cell, colIndex) => {
+                    const td = document.createElement("td");
+                    td.textContent = cell || "";
+                    tr.appendChild(td);
+                });
+                table.appendChild(tr);
+            }
+
+            // 名前が一致した2行を表示
+            const matchedRows = rows.slice(3, 5);
+            matchedRows.forEach((row, rowIndex) => {
+                const tr = document.createElement("tr");
+                row.forEach((cell, colIndex) => {
+                    const td = document.createElement("td");
+                    td.textContent = cell || "";
+                    tr.appendChild(td);
+                });
+                table.appendChild(tr);
+            });
+
+            // チェックボックスの行を追加
+            const checkboxRow = document.createElement("tr");
+            rows[0].forEach((_, colIndex) => {
+                const td = document.createElement("td");
+                if (colIndex < 2) {
+                    td.textContent = "";
+                } else {
+                    const checkbox = document.createElement("input");
+                    checkbox.type = "checkbox";
+                    checkbox.name = `col${colIndex}`;
+                    // 利用/キャンセル待ちの行のデータがレ点の場合、チェックを入れる
+                    if (matchedRows[1][colIndex] === "✔") {
+                        checkbox.checked = true;
+                    }
+                    td.appendChild(checkbox);
+                }
+                checkboxRow.appendChild(td);
+            });
+            table.appendChild(checkboxRow);
+        }
+
+        function sendData() {
+            const name = document.getElementById("nameInput").value;
+            if (!name) {
+                alert('名前を入力してください');
+                return;
+            }
+
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            const checkedData = {};
+
+            checkboxes.forEach((checkbox, index) => {
+                checkedData[index + 3] = checkbox.checked ? "✔" : "";
+            });
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `https://script.google.com/macros/s/${YOUR_SCRIPT_ID}/exec`;
+
+            const nameInput = document.createElement('input');
+            nameInput.type = 'hidden';
+            nameInput.name = 'name';
+            nameInput.value = name;
+            form.appendChild(nameInput);
+
+            const dataInput = document.createElement('input');
+            dataInput.type = 'hidden';
+            dataInput.name = 'data';
+            dataInput.value = JSON.stringify({
+                name: name,
+                checkedData: checkedData
+            });
+            form.appendChild(dataInput);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+    </script>
+</head>
+
+<body>
+    <div class="container">
+        <input type="text" id="nameInput" placeholder="名前を入力">
+        <button onclick="fetchPlanData()">Get</button>
+        <button onclick="sendData()">Post</button>
+        <table id="resultTable" border="1"></table>
+    </div>
+</body>
+
+</html>
