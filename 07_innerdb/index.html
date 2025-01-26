@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Inner GSS DB</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        margin-top: 20px;
+      }
+      th, td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+      }
+      th {
+        background-color: #f2f2f2;
+      }
+      /* カラム幅の指定 */
+      th:nth-child(1), td:nth-child(1) {
+        width: 100px; /* 日付 */
+      }
+      th:nth-child(2), td:nth-child(2) {
+        width: 200px; /* 主題 */
+      }
+      th:nth-child(3), td:nth-child(3) {
+        width: 400px; /* 内容 */
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Inner GSS DB</h1>
+    <form id="dataForm">
+      <label for="date">日付:</label><br />
+      <input type="date" id="date" name="date" required><br /><br />
+      <label for="subject">主題:</label><br />
+      <input type="text" id="subject" name="subject" required><br /><br />
+      <label for="content">内容:</label><br />
+      <textarea id="content" name="content" required></textarea><br /><br />
+      <button type="button" onclick="addData()">追加</button>
+    </form>
+
+    <h2>スプレッドシートデータ</h2>
+    <table id="dataTable">
+      <thead>
+        <tr>
+          <th>日付</th>
+          <th>主題</th>
+          <th>内容</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <script>
+      // スプレッドシートからデータを取得
+      function fetchData() {
+        google.script.run
+          .withSuccessHandler(renderTable)
+          .fetchSpreadsheetData();
+      }
+
+      // HTMLにデータを表示
+      function renderTable(data) {
+        const tableBody = document.querySelector("#dataTable tbody");
+        tableBody.innerHTML = ""; // 初期化
+        const rows = JSON.parse(data);
+        rows.slice(1).forEach(row => {
+          const tr = document.createElement("tr");
+          row.forEach(cell => {
+            const td = document.createElement("td");
+            td.textContent = cell;
+            tr.appendChild(td);
+          });
+          tableBody.appendChild(tr);
+        });
+      }
+
+      // データを追加
+      function addData() {
+        const date = document.getElementById("date").value;
+        const subject = document.getElementById("subject").value;
+        const content = document.getElementById("content").value;
+
+        if (date && subject && content) {
+          const data = JSON.stringify({ date, subject, content });
+          google.script.run
+            .withSuccessHandler(() => {
+              alert("データを追加しました!");
+              fetchData(); // データをリロード
+              document.getElementById("dataForm").reset();
+            })
+            .insertData(data);
+        } else {
+          alert("すべてのフィールドを入力してください!");
+        }
+      }
+
+      // 初期ロード時にデータを取得
+      fetchData();
+    </script>
+  </body>
+</html>
+
