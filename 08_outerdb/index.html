@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>スプレッドシート DB インターフェース</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        form {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input[type="text"],
+        input[type="date"],
+        textarea {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 12px 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        #loading {
+            display: none;
+            color: #666;
+            margin: 10px 0;
+        }
+
+        .error {
+            color: red;
+            padding: 10px;
+            margin: 10px 0;
+        }
+
+        .success {
+            color: green;
+            padding: 10px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>スプレッドシート DB インターフェース</h1>
+
+        <!-- GAS WebアプリのURL設定 -->
+        <div class="form-group">
+            <label for="gasUrl">GAS WebアプリのURL:</label>
+            <input type="text" id="gasUrl" placeholder="https://script.google.com/macros/s/..." />
+            <button onclick="saveGasUrl()">URL保存</button>
+        </div>
+
+        <!-- データ入力フォーム -->
+        <form id="dataForm" onsubmit="submitForm(event)">
+            <h2>データ入力</h2>
+            <div class="form-group">
+                <label for="date">日付:</label>
+                <input type="date" id="date" required>
+            </div>
+
+            <div class="form-group">
+                <label for="subject">主題:</label>
+                <input type="text" id="subject" required>
+            </div>
+
+            <div class="form-group">
+                <label for="content">内容:</label>
+                <textarea id="content" required></textarea>
+            </div>
+
+            <button type="submit">データを追加</button>
+        </form>
+
+        <!-- データ表示部分 -->
+        <h2>データ一覧</h2>
+        <button onclick="loadData()">データを更新</button>
+        <div id="loading">データを読み込み中...</div>
+        <div id="message"></div>
+        <table>
+            <thead>
+                <tr>
+                    <th>日付</th>
+                    <th>主題</th>
+                    <th>内容</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+
+    <script>
+        let gasUrl = localStorage.getItem('gasUrl') || '';
+
+        // URL保存
+        function saveGasUrl() {
+            const urlInput = document.getElementById('gasUrl');
+            gasUrl = urlInput.value.trim();
+            localStorage.setItem('gasUrl', gasUrl);
+            showMessage('URLを保存しました', true);
+            loadData();
+        }
+
+        // 初期化
+        window.onload = function () {
+            const urlInput = document.getElementById('gasUrl');
+            urlInput.value = gasUrl;
+            if (gasUrl) {
+                loadData();
+            }
+        };
+
+        // メッセージ表示
+        function showMessage(message, isSuccess) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = message;
+            messageDiv.className = isSuccess ? 'success' : 'error';
+        }
+
+        // ローディング表示
+        function setLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        // データ追加
+        async function submitForm(event) {
+            event.preventDefault();
+            if (!gasUrl) {
+                showMessage('GAS WebアプリのURLを設定してください', false);
+                return;
+            }
+
+            const formData = {
+                date: document.getElementById('date').value,
+                subject: document.getElementById('subject').value,
+                content: document.getElementById('content').value
+            };
+
+            setLoading(true);
+
+            try {
+                const response = await fetch(gasUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                document.getElementById('dataForm').reset();
+                showMessage('データを追加しました', true);
+                setTimeout(loadData, 1000); // 1秒後にデータを再読み込み
+            } catch (error) {
+                showMessage('エラーが発生しました: ' + error, false);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // JSONP用のコールバック関数
+        window.handleJsonpResponse = function (data) {
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = '';
+
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                const cells = [row[0], row[1], row[2]]; // 配列データを想定
+
+                cells.forEach(cell => {
+                    const td = document.createElement('td');
+                    td.textContent = cell || '';
+                    tr.appendChild(td);
+                });
+
+                tableBody.appendChild(tr);
+            });
+
+            setLoading(false);
+            showMessage('データを更新しました', true);
+        };
+
+        // データ読み込み（JSONP方式）
+        function loadData() {
+            if (!gasUrl) {
+                showMessage('GAS WebアプリのURLを設定してください', false);
+                return;
+            }
+
+            setLoading(true);
+            showMessage('', false);
+
+            // 既存のスクリプトタグを削除
+            const oldScript = document.getElementById('jsonp-script');
+            if (oldScript) {
+                oldScript.remove();
+            }
+
+            // 新しいスクリプトタグを作成
+            const script = document.createElement('script');
+            script.id = 'jsonp-script';
+            script.src = `${gasUrl}?callback=handleJsonpResponse&t=${Date.now()}`;
+
+            script.onerror = function () {
+                setLoading(false);
+                showMessage('データの読み込みに失敗しました', false);
+            };
+
+            document.body.appendChild(script);
+        }
+    </script>
+</body>
+
+</html>
