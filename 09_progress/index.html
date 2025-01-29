@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Sheets 更新アプリ</title>
+</head>
+
+<body>
+    <h1>Google Sheets 更新アプリ</h1>
+
+    <button onclick="loadSheetData()">シート内容を表示</button>
+
+    <table id="sheetTable" border="1">
+        <thead>
+            <tr>
+                <th>Region</th>
+                <th>Progress</th>
+                <th>Pulldown</th>
+                <th>Name</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Action</th> <!-- Actions → Action に変更 -->
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <div id="editForm"></div>
+
+    <script>
+        console.log('Script loaded');
+        const webAppUrl = 'https://script.google.com/macros/s/AKfycbzQ0LOWNCaYIrmwxZVnEdzBIuif40-po16cUaQ2l3W9zB78iYX9NnoNL1TNIJANP9XV/exec';
+
+        function jsonp(url, callback) {
+            console.log('JSONP called with URL:', url);
+            const script = document.createElement('script');
+            const uniqueCallback = 'jsonp_' + Date.now();
+
+            window[uniqueCallback] = function (data) {
+                console.log('JSONP callback received data:', data);
+                callback(data);
+                document.body.removeChild(script);
+                delete window[uniqueCallback];
+            };
+
+            script.onerror = function () {
+                console.error('Script loading failed');
+            };
+
+            script.src = `${url}?callback=${uniqueCallback}`;
+            console.log('Adding script with src:', script.src);
+            document.body.appendChild(script);
+        }
+
+        function loadSheetData() {
+            console.log('loadSheetData called');
+            document.getElementById('sheetTable').querySelector('tbody').innerHTML = 'データ読み込み中...';
+
+            try {
+                jsonp(webAppUrl, function (data) {
+                    console.log('Data received:', data);
+                    renderTable(data);
+                });
+            } catch (error) {
+                console.error('Error in loadSheetData:', error);
+            }
+        }
+
+        function renderTable(data) {
+            console.log('renderTable called with data:', data);
+            const tableBody = document.querySelector('#sheetTable tbody');
+            tableBody.innerHTML = '';
+
+            if (!Array.isArray(data)) {
+                console.error('Data is not an array:', data);
+                return;
+            }
+
+            data.forEach((row, index) => {
+                if (index === 0) return; // ヘッダー行をスキップ
+
+                const tr = document.createElement('tr');
+                row.forEach(cell => {
+                    const td = document.createElement('td');
+                    td.textContent = cell || '';
+                    tr.appendChild(td);
+                });
+
+                // 修正ボタンのみに変更
+                const actionTd = document.createElement('td');
+                actionTd.innerHTML = `<button onclick="editRow(${index - 1})">修正</button>`;
+                tr.appendChild(actionTd);
+
+                tableBody.appendChild(tr);
+            });
+        }
+
+        function editRow(index) {
+            const pulldown = ['散布前', '散布中', '散布済み', '散布中止'];
+            const form = document.getElementById('editForm');
+            form.innerHTML = `
+                <h3>進捗状況の修正</h3>
+                <form onsubmit="return false;">
+                    <label>進捗:</label>
+                    <select id="progress">
+                        ${pulldown.map((option, i) => `<option value="${i}">${option}</option>`).join('')}
+                    </select>
+                    <button onclick="saveChanges(${index})">保存</button>
+                </form>
+            `;
+        }
+
+
+    function saveChanges(index, progress, row) {
+        const email = 'user@example.com';
+        // 日付と時刻のフォーマットを修正
+        const now = new Date();
+        const date = now.toISOString().split('T')[0];  // YYYY-MM-DD
+        const time = now.toTimeString().split(' ')[0];  // HH:mm:ss
+
+        const updateUrl = `${webAppUrl}?action=update&index=${index}&progress=${progress}&email=${email}&date=${date}&time=${time}`;
+
+        jsonp(updateUrl, function (response) {
+            if (response.success) {
+                renderTable(response.data);
+                row.classList.remove('editing');
+            } else {
+                alert('エラーが発生しました');
+            }
+        });
+    }
+
+
+        window.onload = function () {
+            console.log('Window loaded');
+            loadSheetData();
+        };
+    </script>
+</body>
+
+</html>
