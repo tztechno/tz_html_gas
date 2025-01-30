@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>スプレッドシート連携</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            margin: 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <button onclick="loadData()" class="btn">表示</button>
+    <button onclick="saveChanges()" class="btn">決定</button>
+    <div id="tableContainer"></div>
+
+    <script>
+        // GASのWebアプリURLを設定
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbxPZfOTlP8PWtJMEFieVwhnOKVNHMxAkgm9KWLINXsjpWu2Lyi61sraJPretSfy45UWVA/exec';
+        let currentData = [];
+
+        // データを読み込む関数
+        async function loadData() {
+            try {
+                const response = await fetch(GAS_URL);
+                const json = await response.json();
+                currentData = json.data;
+                displayData(currentData);
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        // テーブルを表示する関数
+        function displayData(data) {
+            const container = document.getElementById('tableContainer');
+            const table = document.createElement('table');
+
+            // ヘッダー行の作成
+            const headerRow = document.createElement('tr');
+            data[0].forEach(header => {
+                const th = document.createElement('th');
+                th.textContent = header;
+                headerRow.appendChild(th);
+            });
+            table.appendChild(headerRow);
+
+            // データ行の作成
+            for (let i = 1; i < data.length; i++) {
+                const row = document.createElement('tr');
+                data[i].forEach((cell, cellIndex) => {
+                    const td = document.createElement('td');
+                    if (data[0][cellIndex] === 'pulldown') {
+                        // プルダウンメニューの作成
+                        const select = document.createElement('select');
+                        select.dataset.row = i;
+                        ['実施前', '実施中', '実施済'].forEach(option => {
+                            const opt = document.createElement('option');
+                            opt.value = option;
+                            opt.textContent = option;
+                            if (cell === option) opt.selected = true;
+                            select.appendChild(opt);
+                        });
+                        td.appendChild(select);
+                    } else {
+                        td.textContent = cell;
+                    }
+                    row.appendChild(td);
+                });
+                table.appendChild(row);
+            }
+
+            container.innerHTML = '';
+            container.appendChild(table);
+        }
+
+        // 変更を保存する関数
+        async function saveChanges() {
+            const selects = document.querySelectorAll('select');
+            for (const select of selects) {
+                const row = parseInt(select.dataset.row);
+                const value = select.value;
+
+                try {
+                    const response = await fetch(GAS_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            row: row,
+                            value: value
+                        })
+                    });
+                    const json = await response.json();
+                    if (!json.success) {
+                        console.error('更新に失敗しました');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            }
+
+            // 更新後にデータを再読み込み
+            loadData();
+        }
+    </script>
+</body>
+
+</html>
