@@ -17,7 +17,7 @@ HTMLでも日本時間で表示して
 
 HTML上では、相変わらずUTCとして表示されるのはなぜ？
 
-v02としては、ここまで
+v02としては、ここまで、2025-01-31 16:30
 
 AKfycbyS5WcCyrTj2T_NrGrkp2VIEaYeCSBogqY1vJJeWSI0UMWJQlrGe7WrYagL4U8C2ffTgQ
 
