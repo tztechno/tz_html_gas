@@ -1,4 +1,5 @@
 // GASのコード
+
 function doGet(e) {
   // アクセスしているユーザーのメールアドレスを取得
   var email = Session.getActiveUser().getEmail();
@@ -10,9 +11,13 @@ function doGet(e) {
   // 最終行を取得
   var lastRow = sheet.getLastRow();
   
-  // メールアドレスと登録日時を記録
+  // メールアドレスを記録（A列）
   sheet.getRange(lastRow + 1, 1).setValue(email);
-  sheet.getRange(lastRow + 1, 2).setValue(new Date());
+  
+  // 日時を記録（B列）- Utilities.formatDateを使用して日時フォーマットを指定
+  var now = new Date();
+  var formattedDate = Utilities.formatDate(now, 'Asia/Tokyo', 'yyyy/MM/dd HH:mm:ss');
+  sheet.getRange(lastRow + 1, 2).setValue(formattedDate);
   
   // 完了ページを表示
   var template = HtmlService.createTemplateFromFile('Complete');
