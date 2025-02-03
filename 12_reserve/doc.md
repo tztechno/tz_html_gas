@@ -1,6 +1,8 @@
 ```
 
-https://script.google.com/macros/s/AKfycbxPeKPH4anxjBd6sa7CQ8vp_FRwgrAb9RqhJ9z4J-ljAzvWsmhcYyiWDAwqV8U0ffTL/exec
+://script.google.com/macros/s/
+AKfycbxPeKPH4anxjBd6sa7CQ8vp_FRwgrAb9RqhJ9z4J-ljAzvWsmhcYyiWDAwqV8U0ffTL
+/exec
 
 GAS上でシートIDを指定する
 スプレッドシート書き込み権限解放
