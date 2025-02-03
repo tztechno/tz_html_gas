@@ -1,4 +1,26 @@
 
+
+```
+
+2025-02-03
+
+ボタンに直接urlを記載しないテクニック
+
+    <script>
+        const originalUrl = "https://script.google.com/macros/s/xxxxx/exec";
+        function redirectToGAS() {
+            window.location.href = originalUrl;
+        }
+    </script>
+
+<body>
+    <div class="container">
+        <button onclick="redirectToGAS()">登録する</button>
+    </div>
+</body>
+
+```
+
 ```
 
 2025-02-02
