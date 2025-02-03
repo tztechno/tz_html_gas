@@ -5,6 +5,7 @@
 2025-02-03
 
 ボタンに直接urlを記載しないテクニック
+index2.html（仮採用）
 
     <script>
         const originalUrl = "https://script.google.com/macros/s/xxxxx/exec";
@@ -18,6 +19,11 @@
         <button onclick="redirectToGAS()">登録する</button>
     </div>
 </body>
+
+
+外部ファイルに記載する手もある
+index5.html＋config.jsのように
+
 
 ```
 
