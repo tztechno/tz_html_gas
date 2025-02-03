@@ -1,9 +1,13 @@
+```
+
 https://script.google.com/macros/s/AKfycbxPeKPH4anxjBd6sa7CQ8vp_FRwgrAb9RqhJ9z4J-ljAzvWsmhcYyiWDAwqV8U0ffTL/exec
 
 GAS上でシートIDを指定する
 スプレッドシート書き込み権限解放
 
-お疲れ様でした！成功した要因を分析してみましょう。主な成功要因は以下の3点だと考えられます：
+```
+
+主な成功要因は以下の3点だと考えられます：
 
 1. データ送信形式の統一：
 - 変更前: JSON形式でデータを送信
@@ -41,7 +45,6 @@ if (e.postData.type === 'application/x-www-form-urlencoded') {
 2. デバッグログを活用することで問題の特定が容易になる
 3. GAS側で柔軟なデータ受信処理を実装することで安定性が向上
 
-この経験は今後の開発にも活かせる良い学びになったと思います。
 
 - 「jsonで送って、jsonで受け取る」方法は失敗する
 - 「FormDataで送って、データ形式に応じて処理を分岐させ、FormDataを受け取る」という流れが成功のポイント
