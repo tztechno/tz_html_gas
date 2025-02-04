@@ -8,17 +8,18 @@
         body {
             font-family: Arial, sans-serif;
             text-align: center;
+            font-size: 20px;
         }
 
         .survey-container {
-            max-width: 600px;
+            max-width: 400px;
             margin: 0 auto;
         }
 
         .survey-button {
             width: 100%;
-            padding: 15px;
-            margin: 10px 0;
+            padding: 5px;
+            margin: 5px 0;
             font-size: 16px;
             cursor: pointer;
         }
@@ -40,20 +41,33 @@
 
 <body>
     <div class="survey-container">
-        <h1>アンケート</h1>
-        <p>質問: あなたの今日の気分は？</p>
+        <p>復帰して欲しい芸能人は？</p>
 
         <button class="survey-button" onclick="submitSurvey('good')">
-            良い
+            松本人志
         </button>
 
         <button class="survey-button" onclick="submitSurvey('normal')">
-            普通
+            中居正広
         </button>
 
         <button class="survey-button" onclick="submitSurvey('bad')">
-            悪い
+            笑福亭鶴瓶
         </button>
+
+        <button class="survey-button" onclick="submitSurvey('bad')">
+            TKO木下
+        </button>
+
+        <button class="survey-button" onclick="submitSurvey('bad')">
+            ジャングルポケット・斉藤慎二
+        </button>
+
+        <button class="survey-button" onclick="submitSurvey('bad')">
+            特になし
+        </button>
+
+
     </div>
 
     <div id="message"></div>
