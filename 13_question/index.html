@@ -11,16 +11,29 @@
         }
 
         .survey-container {
-            max-width: 400px;
+            max-width: 600px;
             margin: 0 auto;
         }
 
         .survey-button {
             width: 100%;
-            padding: 5px;
-            margin: 5px 0;
+            padding: 15px;
+            margin: 10px 0;
             font-size: 16px;
             cursor: pointer;
+        }
+
+        #message {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+            z-index: 1000;
         }
     </style>
 </head>
@@ -43,8 +56,21 @@
         </button>
     </div>
 
+    <div id="message"></div>
+
     <script>
         const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwSxoI_PC4YJUOsW1iDumjcu2JT_9TvO-trHCgt5zbBC73qRCGZu89Eb7ETTAxMYBke/exec';
+        const messageEl = document.getElementById('message');
+
+        function showMessage(text) {
+            messageEl.textContent = text;
+            messageEl.style.display = 'block';
+
+            // 2秒後に自動的にメッセージを消す
+            setTimeout(() => {
+                messageEl.style.display = 'none';
+            }, 2000);
+        }
 
         async function submitSurvey(answer) {
             try {
@@ -57,10 +83,10 @@
                 });
 
                 const result = await response.text();
-                alert(result);
+                showMessage(result);
             } catch (error) {
                 console.error('Error:', error);
-                alert('送信に失敗しました');
+                showMessage('送信に失敗しました');
             }
         }
     </script>
