@@ -1,0 +1,25 @@
+<script>
+function submitForm(type) {
+    const name = document.getElementById('name').value;
+    if (!name) {
+        alert('名前を入力してください');
+        return;
+    }
+
+    const comment = document.getElementById('comment').value;
+    
+    google.script.run
+        .withSuccessHandler(function(result) {
+            alert(result);
+            document.getElementById('comment').value = '';
+        })
+        .withFailureHandler(function(error) {
+            alert('エラーが発生しました: ' + error);
+        })
+        .processForm({
+            name: name,
+            comment: comment,
+            type: type
+        });
+}
+</script>
