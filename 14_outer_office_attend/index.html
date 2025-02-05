@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>出退勤管理システム</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .form-group {
+            margin-top: 15px;
+        }
+
+        .button-group {
+            margin-top: 20px;
+        }
+
+        button {
+            margin-right: 10px;
+            padding: 10px 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>出退勤管理システム</h1>
+    <div class="form-group">
+        <label for="name">名前：</label>
+        <input type="text" id="name" name="name" required>
+    </div>
+    <div class="button-group">
+        <button onclick="submitForm('出勤')">出勤</button>
+        <button onclick="submitForm('退勤')">退勤</button>
+        <button onclick="submitForm('欠勤')">欠勤</button>
+    </div>
+    <div class="form-group">
+        <label for="comment">コメント：</label>
+        <textarea id="comment" name="comment" rows="3"></textarea>
+    </div>
+    <script>
+        function submitForm(type) {
+            const formData = new FormData();
+            formData.append('name', document.getElementById('name').value);
+            formData.append('comment', document.getElementById('comment').value);
+            formData.append('type', type);
+
+            // GASのWebアプリケーションURLに置き換えてください
+            const url = 'https://script.google.com/macros/s/AKfycbzEReenr7g4gtSWN69u1Dx0yk2T-1qWca-yzbT9ZPsBdVN75rCg7BPOLE7BTi-VcyHu/exec';
+
+            fetch(url, {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.text())
+                .then(result => {
+                    alert(result);
+                    document.getElementById('comment').value = '';
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('エラーが発生しました');
+                });
+        }
+    </script>
+</body>
+
+</html>
