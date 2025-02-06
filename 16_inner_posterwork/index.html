@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script>
+      function loadIDs() {
+        google.script.run.withSuccessHandler(function(ids) {
+          let idSelect = document.getElementById("idSelect");
+          idSelect.innerHTML = "";
+          ids.forEach(id => {
+            let option = document.createElement("option");
+            option.value = id;
+            option.textContent = id;
+            idSelect.appendChild(option);
+          });
+        }).getIDs();
+      }
+
+      function registerData() {
+        let id = document.getElementById("idSelect").value;
+        let progress = document.getElementById("progressSelect").value;
+        let person = document.getElementById("personInput").value;
+        
+        google.script.run.withSuccessHandler(showPopup).saveData(id, progress, person);
+      }
+
+      function showPopup() {
+        let popup = document.getElementById("popupMessage");
+        popup.style.display = "block"; // ポップアップを表示
+
+        setTimeout(() => {
+          popup.style.display = "none"; // 3秒後に非表示
+        }, 3000);
+      }
+
+      window.onload = loadIDs;
+    </script>
+    <style>
+      #popupMessage {
+        display: none;
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 5px;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <label>ID選択:</label>
+    <select id="idSelect"></select><br>
+    
+    <label>進捗:</label>
+    <select id="progressSelect">
+      <option value="未着手">未着手</option>
+      <option value="実施中">実施中</option>
+      <option value="完了">完了</option>
+    </select><br>
+    
+    <label>担当者:</label>
+    <input type="text" id="personInput"><br>
+    
+    <button onclick="registerData()">登録</button>
+
+    <!-- ポップアップメッセージ -->
+    <div id="popupMessage">登録しました</div>
+  </body>
+</html>
