@@ -1,6 +1,9 @@
 ```
 
-単独のGAS
+GAS と INNER HTML
+MADE BY CGPT
+2025-02-06
+
 シート側の列は左から
 ID番号、進捗、担当者、時刻
 入力
