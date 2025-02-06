@@ -15,4 +15,8 @@ ID:1-5
 ID番号はA列の２行目以降に記載されているので、それをプルダウンの選択肢にする
 選択したID番号の行に、登録内容をシートに記入する
 
+://script.google.com/macros/s/
+AKfycbxV78Ak_9DLdgm7H8gK6iReEeJP_HeihuBgwkzSgTH_lkEUBQwRhXbVppcZA9YxNaOD
+/exec
+
 ```
