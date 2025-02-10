@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <base target="_top">
+    <script src="https://cdn.jsdelivr.net/npm/ol/dist/ol.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol/ol.css">
+    <style>
+        .map {
+            width: 100%;
+            height: 600px;
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        #debug {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: white;
+            padding: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+        }
+
+        .legend {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: white;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .legend-item {
+            margin: 5px 0;
+        }
+
+        .legend-color {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map" class="map">
+        <div id="loading" class="loading">Loading map data...</div>
+    </div>
+    <div class="legend">
+        <div class="legend-item">
+            <span class="legend-color" style="background: rgba(255, 0, 0, 0.3)"></span>
+            Progress 0
+        </div>
+        <div class="legend-item">
+            <span class="legend-color" style="background: rgba(255, 165, 0, 0.3)"></span>
+            Progress 1
+        </div>
+        <div class="legend-item">
+            <span class="legend-color" style="background: rgba(0, 0, 255, 0.3)"></span>
+            Progress 2
+        </div>
+    </div>
+    <div id="debug"></div>
+
+    <script>
+        // Get color based on progress value
+        function getProgressColor(progress) {
+            switch (parseInt(progress)) {
+                case 0:
+                    return {
+                        fill: 'rgba(255, 0, 0, 0.3)',
+                        stroke: 'rgb(255, 0, 0)'
+                    };
+                case 1:
+                    return {
+                        fill: 'rgba(255, 165, 0, 0.3)',
+                        stroke: 'rgb(255, 165, 0)'
+                    };
+                case 2:
+                    return {
+                        fill: 'rgba(0, 0, 255, 0.3)',
+                        stroke: 'rgb(0, 0, 255)'
+                    };
+                default:
+                    return {
+                        fill: 'rgba(128, 128, 128, 0.3)',
+                        stroke: 'rgb(128, 128, 128)'
+                    };
+            }
+        }
+
+        // Wait for the page to load
+        window.addEventListener('load', function () {
+            try {
+                // Create map
+                const map = new ol.Map({
+                    target: 'map',
+                    layers: [
+                        new ol.layer.Tile({
+                            source: new ol.source.OSM()
+                        })
+                    ],
+                    view: new ol.View({
+                        center: ol.proj.fromLonLat([139.7035, 35.6775]),
+                        zoom: 15
+                    })
+                });
+
+                // Create vector layer
+                const vectorLayer = new ol.layer.Vector({
+                    source: new ol.source.Vector(),
+                    style: function (feature) {
+                        if (feature.getGeometry().getType() === 'Polygon') {
+                            const progress = feature.get('progress');
+                            const colors = getProgressColor(progress);
+                            return new ol.style.Style({
+                                stroke: new ol.style.Stroke({
+                                    color: colors.stroke,
+                                    width: 2
+                                }),
+                                fill: new ol.style.Fill({
+                                    color: colors.fill
+                                })
+                            });
+                        } else {
+                            return new ol.style.Style({
+                                text: new ol.style.Text({
+                                    text: feature.get('name'),
+                                    fill: new ol.style.Fill({
+                                        color: 'black'
+                                    }),
+                                    stroke: new ol.style.Stroke({
+                                        color: 'white',
+                                        width: 2
+                                    }),
+                                    font: '14px Arial'
+                                })
+                            });
+                        }
+                    }
+                });
+                map.addLayer(vectorLayer);
+
+                // Load data from spreadsheet
+                google.script.run
+                    .withSuccessHandler(function (polygonData) {
+                        console.log('Received data:', polygonData);
+                        const wktFormat = new ol.format.WKT();
+                        const features = [];
+
+                        polygonData.forEach((data, index) => {
+                            try {
+                                console.log('Processing:', data.wkt);
+                                const feature = wktFormat.readFeature(data.wkt, {
+                                    dataProjection: 'EPSG:4326',
+                                    featureProjection: 'EPSG:3857'
+                                });
+
+                                // Set progress value as feature property
+                                feature.set('progress', data.progress);
+
+                                // Calculate center for label
+                                const extent = feature.getGeometry().getExtent();
+                                const center = ol.extent.getCenter(extent);
+
+                                // Create label feature
+                                const labelFeature = new ol.Feature({
+                                    geometry: new ol.geom.Point(center),
+                                    name: data.region
+                                });
+
+                                features.push(feature);
+                                features.push(labelFeature);
+                            } catch (e) {
+                                console.error('Error processing feature:', e);
+                            }
+                        });
+
+                        vectorLayer.getSource().addFeatures(features);
+
+                        // Zoom to features extent
+                        if (features.length > 0) {
+                            const extent = vectorLayer.getSource().getExtent();
+                            map.getView().fit(extent, {
+                                padding: [50, 50, 50, 50]
+                            });
+                        }
+
+                        // Hide loading message
+                        document.getElementById('loading').style.display = 'none';
+                    })
+                    .withFailureHandler(function (error) {
+                        console.error('Failed to load data:', error);
+                        document.getElementById('loading').innerHTML = 'Failed to load map data';
+                    })
+                    .getPolygonData();
+
+            } catch (e) {
+                console.error('Error initializing map:', e);
+                document.getElementById('loading').innerHTML = 'Error initializing map';
+            }
+        });
+    </script>
+</body>
+
+</html>
