@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .tab {
+            display: none;
+        }
+
+        .tab.active {
+            display: block;
+        }
+
+        .tab-button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+
+        .tab-button.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .form-group {
+            margin: 10px 0;
+        }
+
+        .message-box {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 5px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 8px;
+            margin: 5px 0;
+            box-sizing: border-box;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .message-form {
+            margin-top: 10px;
+            display: none;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .message-form.active {
+            display: block;
+        }
+
+        .profile-card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+
+        .select-form {
+            padding: 8px;
+            width: 200px;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>メッセージ管理システム</h1>
+
+        <div>
+            <button class="tab-button active" onclick="showTab('profile-input')">プロフィール入力</button>
+            <button class="tab-button" onclick="showTab('profile-list')">プロフィール一覧</button>
+            <button class="tab-button" onclick="showTab('message-search')">受信メッセージ</button>
+        </div>
+
+        <!-- プロフィール入力 -->
+        <div id="profile-input" class="tab active">
+            <h2>プロフィール入力</h2>
+            <div class="user-info">
+                <strong>あなたの番号: </strong><span id="current-user-display"></span>
+            </div>
+            <form onsubmit="submitProfileForm(this); return false;">
+                <input type="hidden" name="number" id="profile-number">
+                <div class="form-group">
+                    <label>プロフィール:</label>
+                    <textarea name="profile" required placeholder="自己紹介を入力してください"></textarea>
+                </div>
+                <button type="submit">登録</button>
+            </form>
+        </div>
+        <!-- プロフィール一覧 -->
+        <div id="profile-list" class="tab">
+            <h2>プロフィール一覧</h2>
+            <div id="profiles-container"></div>
+        </div>
+
+        <!-- メッセージ検索 -->
+        <div id="message-search" class="tab">
+            <h2>受信メッセージ</h2>
+            <div class="form-group">
+                <label>送信者で絞り込み:</label>
+                <select id="search-from" onchange="searchMessages()" class="select-form">
+                    <option value="all">全て</option>
+                </select>
+            </div>
+            <div id="messages-container"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentUserId = null;
+
+        function setCurrentUser() {
+            const userId = prompt("あなたの番号を入力してください:");
+            if (userId) {
+                currentUserId = userId;
+                // プロフィール入力フォームの番号を設定
+                document.getElementById('current-user-display').textContent = userId;
+                document.getElementById('profile-number').value = userId;
+                // 現在のプロフィールを取得して表示
+                loadCurrentProfile();
+                searchMessages();
+            }
+        }
+
+        // 現在のユーザーのプロフィールを取得
+        function loadCurrentProfile() {
+            google.script.run
+                .withSuccessHandler(function (profiles) {
+                    const currentProfile = profiles.find(profile => profile[0].toString() === currentUserId.toString());
+                    if (currentProfile) {
+                        document.querySelector('textarea[name="profile"]').value = currentProfile[1];
+                    }
+                })
+                .getAllProfiles();
+        }
+
+        // プロフィール送信（修正版）
+        function submitProfileForm(form) {
+            google.script.run
+                .withSuccessHandler(profileSubmitted)
+                .submitProfile({
+                    number: currentUserId,  // フォームの値ではなく、currentUserIdを使用
+                    profile: form.profile.value
+                });
+            form.reset();
+            showTab('profile-list');
+        }
+
+        // タブ切り替え
+        function showTab(tabId) {
+            if (!currentUserId && tabId !== 'profile-input') {
+                alert('最初にプロフィールを登録してください。');
+                return;
+            }
+
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            document.querySelector(`button[onclick="showTab('${tabId}')"]`).classList.add('active');
+
+            if (tabId === 'profile-list') {
+                loadProfiles();
+            } else if (tabId === 'message-search') {
+                loadProfilesForSelect();
+                searchMessages();
+            }
+        }
+
+        function profileSubmitted(profiles) {
+            loadProfiles();
+            alert('プロフィールを保存しました');
+        }
+
+        // プロフィール一覧読み込み
+        function loadProfiles() {
+            google.script.run
+                .withSuccessHandler(updateProfilesTable)
+                .getAllProfiles();
+        }
+
+        function updateProfilesTable(profiles) {
+            const container = document.getElementById('profiles-container');
+            container.innerHTML = profiles.map((profile, index) => {
+                if (profile[0] === currentUserId) return ''; // 自分のプロフィールは表示しない
+
+                return `
+                    <div class="profile-card">
+                        <strong>番号:</strong> ${profile[0]}<br>
+                        <strong>プロフィール:</strong><br>
+                        ${profile[1].replace(/\n/g, '<br>')}<br>
+                        <button onclick="showMessageForm('new-message-${index}')">メッセージを送る</button>
+                        <form id="new-message-${index}" class="message-form" onsubmit="submitNewMessage('${profile[0]}', event)">
+                            <textarea name="message" required placeholder="メッセージを入力してください"></textarea>
+                            <button type="submit">送信</button>
+                        </form>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // メッセージフォームの表示切り替え
+        function showMessageForm(formId) {
+            const forms = document.querySelectorAll('.message-form');
+            forms.forEach(form => form.classList.remove('active'));
+
+            const form = document.getElementById(formId);
+            if (form) {
+                form.classList.add('active');
+            }
+        }
+
+        // 新規メッセージ送信
+        function submitNewMessage(toId, event) {
+            event.preventDefault();
+            const form = event.target;
+            const message = form.message.value;
+
+            google.script.run
+                .withSuccessHandler(() => {
+                    form.reset();
+                    form.classList.remove('active');
+                    alert('メッセージを送信しました');
+                })
+                .submitMessage({
+                    from: currentUserId,
+                    to: toId,
+                    message: message
+                });
+        }
+
+        // プロフィール選択肢読み込み
+        function loadProfilesForSelect() {
+            google.script.run
+                .withSuccessHandler(updateProfileSelects)
+                .getAllProfiles();
+        }
+
+        function updateProfileSelects(profiles) {
+            const searchFrom = document.getElementById('search-from');
+            searchFrom.innerHTML = '<option value="all">全て</option>' +
+                profiles
+                    .filter(profile => profile[0] !== currentUserId)
+                    .map(profile =>
+                        `<option value="${profile[0]}">${profile[0]}</option>`
+                    ).join('');
+        }
+
+        // メッセージ検索と表示
+        function searchMessages() {
+            if (!currentUserId) return;
+
+            const fromId = document.getElementById('search-from').value || 'all';
+            google.script.run
+                .withSuccessHandler(updateMessages)
+                .searchMessages(fromId, currentUserId);
+        }
+
+        function updateMessages(messages) {
+            const container = document.getElementById('messages-container');
+            container.innerHTML = messages.map((msg, index) => `
+                <div class="message-box">
+                    <strong>From:</strong> ${msg[0]}<br>
+                    <strong>Message:</strong><br>
+                    ${msg[2].replace(/\n/g, '<br>')}<br>
+                    <button onclick="showMessageForm('reply-form-${index}')">返信</button>
+                    <form id="reply-form-${index}" class="message-form" onsubmit="submitReply('${msg[0]}', event)">
+                        <textarea name="reply" required placeholder="返信メッセージを入力してください"></textarea>
+                        <button type="submit">送信</button>
+                    </form>
+                </div>
+            `).join('');
+        }
+
+        // 返信送信
+        function submitReply(toId, event) {
+            event.preventDefault();
+            const form = event.target;
+            const message = form.reply.value;
+
+            google.script.run
+                .withSuccessHandler(() => {
+                    form.reset();
+                    form.classList.remove('active');
+                    alert('返信を送信しました');
+                    searchMessages();
+                })
+                .submitMessage({
+                    from: currentUserId,
+                    to: toId,
+                    message: message
+                });
+        }
+
+        // 初期化
+        window.onload = function () {
+            setCurrentUser();
+            loadProfilesForSelect();
+        };
+    </script>
+</body>
+
+</html>
