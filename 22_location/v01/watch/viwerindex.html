@@ -1,0 +1,203 @@
+Location Viewer Interface
+
+<!-- ViewerIndex.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
+  <style>
+    #map {
+      height: 400px;
+      width: 100%;
+      margin: 20px 0;
+    }
+    #info {
+      margin: 10px 0;
+      padding: 10px;
+      background-color: #e3f2fd;
+      border-radius: 4px;
+    }
+    .button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      background-color: #2196F3;
+      color: white;
+      border: none;
+      border-radius: 4px;
+    }
+    .error {
+      background-color: #ffebee;
+      color: #c62828;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+    }
+    #sourceSelect {
+      padding: 8px;
+      margin-right: 10px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+  </style>
+</head>
+<body>
+  <div id="info">
+    <div style="margin-bottom: 10px;">
+      データソース: 
+      <select id="sourceSelect" onchange="changeSource()">
+        <option value="">選択してください</option>
+      </select>
+    </div>
+    最終更新: <span id="lastUpdate">-</span>
+    <button class="button" onclick="refreshData()">更新</button>
+  </div>
+  <div id="errorMessage" class="error" style="display: none;"></div>
+  <div id="map"></div>
+
+  <script>
+    let map;
+    let pathLine;
+    let currentSourceId = '';
+    
+    function initMap() {
+      map = L.map('map').setView([35.6812, 139.7671], 15);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map);
+      
+      pathLine = L.polyline([], {
+        color: '#2196F3',
+        weight: 3,
+        opacity: 0.8
+      }).addTo(map);
+      
+      loadSourceList();
+    }
+
+    function loadSourceList() {
+      google.script.run
+        .withSuccessHandler(updateSourceList)
+        .getSourceSheetIds();
+    }
+
+    function updateSourceList(sourceIds) {
+      const select = document.getElementById('sourceSelect');
+      select.innerHTML = '<option value="">選択してください</option>';
+      sourceIds.forEach((id, index) => {
+        const option = document.createElement('option');
+        option.value = id;
+        option.textContent = `データソース ${index + 1}`;
+        select.appendChild(option);
+      });
+    }
+
+    function changeSource() {
+      const sourceId = document.getElementById('sourceSelect').value;
+      if (sourceId) {
+        currentSourceId = sourceId;
+        loadData();
+      } else {
+        clearMap();
+      }
+    }
+
+    function loadData() {
+      if (!currentSourceId) return;
+
+      // 位置データの読み込み
+      google.script.run
+        .withSuccessHandler(handleLocationsResponse)
+        .withFailureHandler(handleError)
+        .getLocations(currentSourceId);
+        
+      // 最終更新時刻の取得
+      google.script.run
+        .withSuccessHandler(handleLastUpdateResponse)
+        .withFailureHandler(handleError)
+        .getLastUpdateTime(currentSourceId);
+    }
+
+    function handleLocationsResponse(response) {
+      if (response.success) {
+        displayLocations(response.data);
+        hideError();
+      } else {
+        handleError(response.error);
+      }
+    }
+
+    function handleLastUpdateResponse(response) {
+      if (response.success) {
+        updateLastUpdateTime(response.timestamp);
+        hideError();
+      } else {
+        handleError(response.error);
+      }
+    }
+
+    function displayLocations(locations) {
+      // マップをクリア
+      pathLine.setLatLngs([]);
+      
+      // 記録位置を線で結ぶ
+      const points = locations.map(loc => [loc.latitude, loc.longitude]);
+      pathLine.setLatLngs(points);
+      
+      // 記録位置を青点で表示
+      points.forEach(point => {
+        L.circleMarker(point, {
+          radius: 5,
+          color: '#2196F3',
+          fillColor: '#2196F3',
+          fillOpacity: 1
+        }).addTo(map);
+      });
+      
+      // 表示範囲を調整
+      if (points.length > 0) {
+        map.fitBounds(pathLine.getBounds(), { padding: [50, 50] });
+      }
+    }
+
+    function clearMap() {
+      pathLine.setLatLngs([]);
+      map.eachLayer((layer) => {
+        if (layer instanceof L.CircleMarker) {
+          layer.remove();
+        }
+      });
+      document.getElementById('lastUpdate').textContent = '-';
+    }
+
+    function updateLastUpdateTime(timestamp) {
+      const lastUpdateSpan = document.getElementById('lastUpdate');
+      if (timestamp) {
+        lastUpdateSpan.textContent = new Date(timestamp).toLocaleString();
+      } else {
+        lastUpdateSpan.textContent = 'データなし';
+      }
+    }
+
+    function handleError(error) {
+      const errorDiv = document.getElementById('errorMessage');
+      errorDiv.textContent = error;
+      errorDiv.style.display = 'block';
+    }
+
+    function hideError() {
+      document.getElementById('errorMessage').style.display = 'none';
+    }
+
+    function refreshData() {
+      if (currentSourceId) {
+        loadData();
+      }
+    }
+
+    window.onload = initMap;
+  </script>
+</body>
+</html>
