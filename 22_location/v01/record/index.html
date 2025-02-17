@@ -1,0 +1,196 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
+  <style>
+    #map {
+      height: 400px;
+      width: 100%;
+      margin: 20px 0;
+    }
+    .button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+    }
+    .button:disabled {
+      background-color: #cccccc;
+    }
+    #status {
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    .error {
+      background-color: #ffebee;
+      color: #c62828;
+    }
+    .success {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+    }
+  </style>
+</head>
+<body>
+  <div id="status"></div>
+  <button id="startBtn" class="button" onclick="startRecording()">記録開始</button>
+  <button id="stopBtn" class="button" disabled onclick="stopRecording()">記録停止</button>
+  <div id="map"></div>
+
+  <script>
+    let map;
+    let currentLocationMarker;
+    let pathLine;
+    let recordingInterval;
+    
+    function checkGeolocation() {
+      const statusDiv = document.getElementById('status');
+      if (!("geolocation" in navigator)) {
+        statusDiv.textContent = 'お使いのブラウザは位置情報をサポートしていません。';
+        statusDiv.className = 'error';
+        document.getElementById('startBtn').disabled = true;
+        return false;
+      }
+      
+      navigator.geolocation.getCurrentPosition(
+        function(position) {
+          statusDiv.textContent = '位置情報の取得が許可されています。';
+          statusDiv.className = 'success';
+          document.getElementById('startBtn').disabled = false;
+          
+          // 現在位置に地図を移動
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          map.setView([lat, lng], 15);
+        },
+        function(error) {
+          let errorMessage = '位置情報の取得に失敗しました: ';
+          switch(error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage += '位置情報の利用が許可されていません。';
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage += '位置情報を取得できません。';
+              break;
+            case error.TIMEOUT:
+              errorMessage += 'タイムアウトしました。';
+              break;
+          }
+          statusDiv.textContent = errorMessage;
+          statusDiv.className = 'error';
+          document.getElementById('startBtn').disabled = true;
+        }
+      );
+    }
+
+    function initMap() {
+      map = L.map('map').setView([35.6812, 139.7671], 15);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map);
+      
+      // パスラインの初期化
+      pathLine = L.polyline([], {
+        color: '#2196F3',
+        weight: 3,
+        opacity: 0.8
+      }).addTo(map);
+      
+      google.script.run
+        .withSuccessHandler(displayLocations)
+        .getAllLocations();
+        
+      checkGeolocation();
+    }
+
+    function displayLocations(locations) {
+      // パスラインをクリア
+      pathLine.setLatLngs([]);
+      
+      // 記録位置を線で結ぶ
+      const points = locations.map(loc => [loc.latitude, loc.longitude]);
+      pathLine.setLatLngs(points);
+      
+      // 記録位置を青点で表示
+      points.forEach(point => {
+        L.circleMarker(point, {
+          radius: 5,
+          color: '#2196F3',
+          fillColor: '#2196F3',
+          fillOpacity: 1
+        }).addTo(map);
+      });
+      
+      // 表示範囲を調整
+      if (points.length > 0) {
+        map.fitBounds(pathLine.getBounds(), { padding: [50, 50] });
+      }
+    }
+
+    function startRecording() {
+      const statusDiv = document.getElementById('status');
+      document.getElementById('startBtn').disabled = true;
+      document.getElementById('stopBtn').disabled = false;
+
+      google.script.run.withSuccessHandler(settings => {
+        recordingInterval = setInterval(() => {
+          navigator.geolocation.getCurrentPosition(
+            position => {
+              const latitude = position.coords.latitude;
+              const longitude = position.coords.longitude;
+              const timestamp = new Date().toISOString();
+
+              statusDiv.textContent = '位置情報を記録中です...';
+              statusDiv.className = 'success';
+
+              // 現在の位置を地図の中心に
+              map.setView([latitude, longitude]);
+
+              // 現在位置を記録
+              google.script.run
+                .withSuccessHandler(() => {
+                  // 既存のパスラインに新しい位置を追加
+                  const currentLatLngs = pathLine.getLatLngs();
+                  currentLatLngs.push([latitude, longitude]);
+                  pathLine.setLatLngs(currentLatLngs);
+                  
+                  // 新しい位置に青点を追加
+                  L.circleMarker([latitude, longitude], {
+                    radius: 5,
+                    color: '#2196F3',
+                    fillColor: '#2196F3',
+                    fillOpacity: 1
+                  }).addTo(map);
+                })
+                .recordLocation(latitude, longitude, timestamp);
+            },
+            error => {
+              statusDiv.textContent = '位置情報の取得に失敗しました。';
+              statusDiv.className = 'error';
+              stopRecording();
+            }
+          );
+        }, settings.interval * 1000);
+      }).getSettings();
+    }
+
+    function stopRecording() {
+      clearInterval(recordingInterval);
+      document.getElementById('startBtn').disabled = false;
+      document.getElementById('stopBtn').disabled = true;
+      const statusDiv = document.getElementById('status');
+      statusDiv.textContent = '記録を停止しました。';
+      statusDiv.className = 'success';
+    }
+
+    window.onload = initMap;
+  </script>
+</body>
+</html>
