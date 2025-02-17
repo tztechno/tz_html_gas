@@ -1,0 +1,143 @@
+<!-- Index.html -->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>今日のゴミ出し</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+
+        #currentTime {
+            text-align: center;
+            font-size: 1.2em;
+            color: #666;
+            margin: 15px 0;
+        }
+
+        .schedule-item {
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 4px;
+            background-color: #f8f9fa;
+        }
+
+        .schedule-item h2 {
+            margin: 0;
+            font-size: 1.3em;
+            color: #444;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            font-style: italic;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>今日のゴミ出し</h1>
+        <div id="currentTime"></div>
+        <div id="scheduleContainer">
+            <div id="todayInfo" class="schedule-item"></div>
+            <div id="tomorrowInfo" class="schedule-item"></div>
+            <div id="dayaftertomorrowInfo" class="schedule-item"></div>
+        </div>
+    </div>
+
+    <script>
+        let garbageTypes = {};
+        let schedule = {};
+
+        // Load data from spreadsheet
+        function loadData() {
+            google.script.run
+                .withSuccessHandler(types => {
+                    garbageTypes = types;
+                    return google.script.run.withSuccessHandler(sched => {
+                        schedule = sched;
+                        displayDates();
+                    }).getSchedule();
+                })
+                .getGarbageTypes();
+        }
+
+        function getFormattedDate(date) {
+            const options = { month: 'numeric', day: 'numeric', weekday: 'long' };
+            return date.toLocaleDateString('ja-JP', options);
+        }
+
+        function getGarbage(date) {
+            const day = date.getDay();
+            const dateOfMonth = date.getDate();
+            const weekOfMonth = Math.floor((dateOfMonth - 1) / 7);
+            
+            // Get garbage type code from schedule
+            const garbageCode = schedule[day][weekOfMonth];
+            // Convert code to actual garbage type name
+            return garbageTypes[garbageCode] || 'なし';
+        }
+
+        function displayDates() {
+            const today = new Date();
+            const tomorrow = new Date(today);
+            const dayaftertomorrow = new Date(today);
+            tomorrow.setDate(today.getDate() + 1);
+            dayaftertomorrow.setDate(today.getDate() + 2);
+
+            document.getElementById('todayInfo').innerHTML = 
+                `<h2>今日(${getFormattedDate(today)})</h2>${getGarbage(today)}`;
+            document.getElementById('tomorrowInfo').innerHTML = 
+                `<h2>明日(${getFormattedDate(tomorrow)})</h2>${getGarbage(tomorrow)}`;
+            document.getElementById('dayaftertomorrowInfo').innerHTML = 
+                `<h2>明後日(${getFormattedDate(dayaftertomorrow)})</h2>${getGarbage(dayaftertomorrow)}`;
+        }
+
+        function updateCurrentTime() {
+            const now = new Date();
+            const formattedTime = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 ${now.getHours()}時${now.getMinutes()}分${now.getSeconds()}秒`;
+            document.getElementById('currentTime').textContent = `現在の時刻: ${formattedTime}`;
+        }
+
+        function checkTimeForGreeting(targetHour, targetMinute) {
+            const now = new Date();
+            if (now.getHours() === targetHour && now.getMinutes() === targetMinute) {
+                const greetingMessage = `おはようございます、今日は${getFormattedDate(now)}です。今日のゴミ出しは${getGarbage(now)}です。`;
+                speakText(greetingMessage);
+            }
+            setTimeout(() => checkTimeForGreeting(targetHour, targetMinute), 60000);
+        }
+
+        function speakText(text) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ja-JP';
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // Initialize
+        loadData();
+        setInterval(updateCurrentTime, 1000);
+        checkTimeForGreeting(8, 0);
+    </script>
+</body>
+</html>
