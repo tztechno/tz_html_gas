@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>位置情報記録アプリ</title>
+</head>
+<body>
+  <div id="status">ステータス: 停止中</div>
+  <button onclick="startTracking()">記録開始</button>
+  <button onclick="stopTracking()">記録停止</button>
+
+  <script>
+    let worker = null;
+    let settings = null;
+
+    // 初期設定を読み込む
+    google.script.run
+      .withSuccessHandler(function(result) {
+        settings = result;
+      })
+      .getSettings();
+
+    // Service Workerの登録
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('location-worker.js')
+        .then(function(registration) {
+          console.log('ServiceWorker registration successful');
+        })
+        .catch(function(err) {
+          console.log('ServiceWorker registration failed: ', err);
+        });
+    }
+
+    // 位置情報の取得を開始
+    function startTracking() {
+      if (!('wakeLock' in navigator)) {
+        console.log('Wake Lock API is not supported.');
+        return;
+      }
+
+      // Wake Lockを取得してスリープを防止
+      navigator.wakeLock.request('screen')
+        .then(lock => {
+          console.log('Wake Lock is active');
+        });
+
+      // バックグラウンドタスクのスケジューリング
+      if ('scheduling' in navigator) {
+        navigator.scheduling.requestPeriodic({
+          duration: settings.interval * 1000,
+          name: 'location-tracking',
+          urgency: 'user-visible'
+        });
+      }
+
+      // 位置情報の取得を開始
+      navigator.geolocation.watchPosition(
+        function(position) {
+          const data = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            timestamp: new Date().toISOString()
+          };
+
+          // Google Apps Scriptに位置情報を送信
+          google.script.run
+            .withSuccessHandler(function() {
+              document.getElementById('status').textContent = 
+                `ステータス: 記録中 (${data.timestamp})`;
+            })
+            .recordLocation(data.latitude, data.longitude, data.timestamp);
+        },
+        function(error) {
+          console.error('位置情報の取得に失敗:', error);
+        },
+        {
+          enableHighAccuracy: true,
+          maximumAge: 0,
+          timeout: 5000
+        }
+      );
+    }
+
+    // 位置情報の取得を停止
+    function stopTracking() {
+      if (worker) {
+        worker.terminate();
+        worker = null;
+      }
+      document.getElementById('status').textContent = 'ステータス: 停止中';
+    }
+  </script>
+</body>
+</html>
