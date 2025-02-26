@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <title>勤務可能時間入力フォーム</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #333;
+      text-align: center;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    .time-slots {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .time-slot {
+      display: flex;
+      align-items: center;
+    }
+    .time-label {
+      margin-left: 5px;
+      width: 50px;
+    }
+    input[type="checkbox"] {
+      margin-right: 0;
+      cursor: pointer;
+    }
+    button {
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #356ac3;
+    }
+    .message {
+      margin-top: 20px;
+      padding: 10px;
+      border-radius: 4px;
+      text-align: center;
+    }
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>勤務可能時間入力フォーム</h1>
+    <form id="availabilityForm">
+      <div class="form-group">
+        <label for="name">お名前：</label>
+        <input type="text" id="name" name="name" required>
+      </div>
+      
+      <div class="form-group">
+        <label>勤務可能時間帯（チェックを入れてください）：</label>
+        <div id="timeSlotsContainer" class="time-slots">
+          <!-- JavaScriptで時間枠を動的に生成 -->
+        </div>
+      </div>
+      
+      <button type="submit">登録する</button>
+    </form>
+    
+    <div id="message" class="message" style="display: none;"></div>
+  </div>
+
+  <script>
+    // ページ読み込み時に時間枠を生成
+    document.addEventListener('DOMContentLoaded', function() {
+      const container = document.getElementById('timeSlotsContainer');
+      
+      // 8:00から16:00までの時間枠を生成
+      for (let hour = 8; hour <= 16; hour++) {
+        const timeStr = `${hour}:00`;
+        
+        // 時間枠の要素を作成
+        const timeSlot = document.createElement('div');
+        timeSlot.className = 'time-slot';
+        
+        // チェックボックスを作成 (先に配置)
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.name = 'timeSlot';
+        checkbox.value = timeStr;
+        checkbox.id = `time-${hour}`;
+        
+        // ラベルを作成 (後に配置)
+        const label = document.createElement('label');
+        label.className = 'time-label';
+        label.textContent = timeStr;
+        label.htmlFor = `time-${hour}`;
+        
+        // 要素を追加（チェックボックスが先、ラベルが後）
+        timeSlot.appendChild(checkbox);
+        timeSlot.appendChild(label);
+        container.appendChild(timeSlot);
+      }
+    });
+
+    // フォーム送信時の処理
+    document.getElementById('availabilityForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      // フォームデータの取得
+      const name = document.getElementById('name').value;
+      if (!name) {
+        showMessage('お名前を入力してください', 'error');
+        return;
+      }
+      
+      // 選択された時間帯を取得
+      const selectedTimes = {};
+      for (let hour = 8; hour <= 16; hour++) {
+        const timeStr = `${hour}:00`;
+        const checkbox = document.querySelector(`input[value="${timeStr}"]`);
+        selectedTimes[timeStr] = checkbox.checked ? '○' : '×';
+      }
+      
+      // Google Apps Scriptの関数を呼び出し
+      google.script.run
+        .withSuccessHandler(onSuccess)
+        .withFailureHandler(onFailure)
+        .saveAvailability(name, selectedTimes);
+    });
+    
+    function onSuccess() {
+      showMessage('勤務可能時間を登録しました', 'success');
+      document.getElementById('availabilityForm').reset();
+    }
+    
+    function onFailure(error) {
+      showMessage('エラーが発生しました: ' + error, 'error');
+    }
+    
+    function showMessage(text, type) {
+      const messageDiv = document.getElementById('message');
+      messageDiv.textContent = text;
+      messageDiv.className = 'message ' + type;
+      messageDiv.style.display = 'block';
+      
+      // 3秒後にメッセージを消す
+      setTimeout(function() {
+        messageDiv.style.display = 'none';
+      }, 3000);
+    }
+  </script>
+</body>
+</html>
