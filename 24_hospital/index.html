@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        line-height: 1.6;
+      }
+      h1 {
+        color: #4285f4;
+      }
+      input[type=text] {
+        padding: 8px;
+        width: 250px;
+        margin-bottom: 10px;
+      }
+      button {
+        padding: 10px 15px;
+        background-color: #4285f4;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #3367d6;
+      }
+      #reservationInfo {
+        margin-top: 20px;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        display: none;
+      }
+      .success {
+        background-color: #e6f4ea;
+        border-color: #34a853;
+      }
+      .error {
+        background-color: #fce8e6;
+        border-color: #ea4335;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>動物病院予約</h1>
+    <form id="reservationForm">
+      <div>
+        <label for="name">名前:</label>
+        <input type="text" id="name" required>
+      </div>
+      <button type="button" onclick="reserve()">予約する</button>
+    </form>
+    
+    <div id="reservationInfo"></div>
+
+    <script>
+      function reserve() {
+        var name = document.getElementById('name').value;
+        if (!name) {
+          alert('名前を入力してください');
+          return;
+        }
+        
+        // 予約処理中のメッセージを表示
+        var infoDiv = document.getElementById('reservationInfo');
+        infoDiv.style.display = 'block';
+        infoDiv.className = '';
+        infoDiv.innerHTML = '予約処理中です...';
+        
+        // サーバーサイド関数を呼び出し
+        google.script.run
+          .withSuccessHandler(displayReservation)
+          .withFailureHandler(handleError)
+          .reserveAppointment(name);
+      }
+
+      function displayReservation(result) {
+        var infoDiv = document.getElementById('reservationInfo');
+        
+        if (result.error) {
+          // エラーが返された場合
+          infoDiv.className = 'error';
+          infoDiv.innerHTML = '<h2>予約の登録に失敗しました</h2>' + result.error;
+          return;
+        }
+        
+        // 成功の場合
+        infoDiv.className = 'success';
+        infoDiv.innerHTML = `
+          <h2>予約が完了しました</h2>
+          <p>受付番号: ${result.reservationNumber}</p>
+          <p>名前: ${result.name}</p>
+          <p>受付時間: ${result.reservationTime}</p>
+        `;
+        
+        // フォームをリセット
+        document.getElementById('name').value = '';
+      }
+      
+      function handleError(error) {
+        var infoDiv = document.getElementById('reservationInfo');
+        infoDiv.style.display = 'block';
+        infoDiv.className = 'error';
+        infoDiv.innerHTML = '<h2>予約の登録に失敗しました</h2>' + error.message;
+      }
+    </script>
+  </body>
+</html>
